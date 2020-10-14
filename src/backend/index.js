@@ -13,8 +13,8 @@ io.on("connection", (client) => {
 	});
 });
 
-io.listen(8081);
+io.listen(6968);
 
-app.listen(8080, () => {
+app.listen(6969, () => {
 	console.log("Listening");
 });
