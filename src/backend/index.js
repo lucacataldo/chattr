@@ -9,8 +9,6 @@ app.use(express.static("./src/frontend"));
 io.on("connection", (client) => {
 	console.log("Connected");
 	client.on("msg", (data) => {
-		console.log(client);
-		console.log(data);
 		client.broadcast.emit("newMsg", { from: "other", message: data });
 	});
 });
