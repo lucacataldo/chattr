@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>chattr.</title>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;800&display=swap"
+			rel="stylesheet"
+		/>
+		<script src="https://cdn.jsdelivr.net/npm/socket.io-client@2.3.1/dist/socket.io.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/vue@2.6.12/dist/vue.js"></script>
+		<style>
+			* {
+				padding: 0px;
+				margin: 0px;
+			}
+
+			:root {
+				font-family: Montserrat, Arial, Helvetica, sans-serif;
+			}
+
+			#app {
+				width: 100%;
+				height: 100%;
+				box-sizing: border-box;
+				position: absolute;
+				padding: 50px;
+				background: #ffffff;
+				display: flex;
+				flex-direction: column;
+				justify-content: space-between;
+			}
+
+			.chat {
+				flex-grow: 5;
+				box-sizing: border-box;
+				border: solid 1px #cccccc;
+				border-radius: 15px;
+				margin-top: 25px;
+				display: flex;
+				flex-direction: column;
+				overflow-y: auto;
+			}
+
+			.chat .msgCont {
+				display: flex;
+				padding: 5px;
+				flex-grow: 0;
+				justify-content: end;
+			}
+
+			.chat .other {
+				justify-content: start;
+				background: rgba(0, 0, 0, 0.05);
+			}
+
+			.chat .other .msg {
+				color: white;
+				background: green;
+			}
+
+			.chat .msg {
+				flex-grow: 0;
+				border-radius: 1000px;
+				font-size: 16px;
+				padding: 5px 20px;
+				text-align: center;
+				display: inline !important;
+				box-sizing: border-box;
+				border: solid 1px #cccccc;
+			}
+
+			.msgBox {
+				border-radius: 15px;
+				outline: none;
+				border: solid 1px #cccccc;
+				height: 50px;
+				text-align: center;
+				font-size: 25px;
+				margin-top: 25px;
+			}
+
+			.toast {
+				position: fixed;
+				z-index: 5;
+				border-radius: 15px;
+				top: 25px;
+				width: 80%;
+				right: 10%;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				min-height: 50px;
+				background: white;
+				border: solid 1px green;
+				color: green;
+				box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.1);
+				animation: toast ease forwards;
+			}
+
+			@keyframes toast {
+				0% {
+					opacity: 0;
+					transform: translateY(-20px);
+				}
+				10% {
+					opacity: 1;
+					transform: translateY(0px);
+				}
+				95% {
+					opacity: 1;
+					transform: translateY(0px);
+				}
+				100% {
+					opacity: 0;
+					transform: translateY(-20px);
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div id="app">
+			<div v-if="toaster.visible" ref="toast" class="toast">
+				{{toaster.msg}}
+			</div>
+			<div class="top">
+				<h1>chattr.</h1>
+			</div>
+			<div class="chat">
+				<div
+					v-for="(msg) in messages"
+					:key="msg.message + msg.user"
+					class="msgCont"
+					:class="{other: msg.from == 'other'}"
+				>
+					<span class="msg">{{msg.message}}</span>
+				</div>
+			</div>
+			<input
+				class="msgBox"
+				type="text"
+				v-model="usrMsg"
+				@keyup.enter="sendMsg()"
+				autofocus
+			/>
+		</div>
+		<script>
+			var socket = io("http://192.168.2.24:8081");
+			var app = new Vue({
+				el: "#app",
+				data: {
+					isConnected: false,
+					toaster: {
+						visible: true,
+						msg: "",
+					},
+					messages: [],
+					usrMsg: "",
+				},
+				methods: {
+					sendMsg: function (e) {
+						if (this.isConnected === true) {
+							socket.emit("msg", this.usrMsg);
+							this.messages.push({
+								from: "me",
+								message: this.usrMsg,
+							});
+                            this.usrMsg = "";
+                            this.scrollChat()
+						} else {
+							alert("not connected yet, try again soon.");
+						}
+					},
+					toast: function (opts = { msg: "", time: 4000 }) {
+						this.$refs.toast.style.animationDuration =
+							opts.time / 1000 + "s";
+						this.toaster.msg = opts.msg;
+						this.toaster.visible = true;
+						setTimeout(() => {
+							this.toaster.visible = false;
+						}, opts.time);
+					},
+					scrollChat: function () {
+						this.$nextTick(() => {
+							document.querySelector(
+								".chat"
+							).scrollTop = document.querySelector(
+								".chat"
+							).scrollHeight;
+						});
+					},
+				},
+				mounted() {
+					socket.on("connect", () => {
+						this.isConnected = true;
+						this.toast({ msg: "Connected.", time: 5000 });
+					});
+
+					socket.on("newMsg", (data) => {
+                        this.messages.push(data);
+                        this.scrollChat()
+					});
+				},
+			});
+		</script>
+	</body>
+</html>
